@@ -22,11 +22,13 @@ import { Pane } from 'tweakpane'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { BoxGeometry, Mesh, MeshNormalMaterial, Vector2 } from 'three'
+import { AmbientLight, BoxGeometry, Color, DirectionalLight, LinearToneMapping, Mesh, MeshNormalMaterial, Vector2 } from 'three'
 import ThreeBase from '../core/ThreeBase'
 import GPURendering from '../gpu/sim/GPURendering'
 import GPUSimulation from '../gpu/sim/GPUSimulation'
+import StonesObject from './objects/StonesObject'
 
 class MainScene extends ThreeBase {
   private rafHandler: any
@@ -45,8 +47,8 @@ class MainScene extends ThreeBase {
     this.events()
     this.setup().then(() => {
       this.setupControls()
-      this.setupPostprocessing()
-      this.setupGui()
+      // this.setupPostprocessing()
+      // this.setupGui()
       this.update()
     })
   }
@@ -70,20 +72,33 @@ class MainScene extends ThreeBase {
   private update(): void {
     this.raf = requestAnimationFrame(this.rafHandler)
     this.controls?.update()
-    this.gpuSimulation?.update()
-    this.gpuRendering?.update()
-    this.composer!.render()
+    // this.gpuSimulation?.update()
+    // this.gpuRendering?.update()
+    // this.composer?.render()
+    this.renderer.render(this.scene, this.camera)
   }
 
   private setup(): Promise<void> {
     return new Promise(resolve => {
-      this.renderer.setClearColor(0x222222)
+      const c = new Color(0xFFFF55)
+      this.renderer.setClearColor(c.convertSRGBToLinear())
+      this.renderer.toneMapping = LinearToneMapping
+      
       const loader = new OBJLoader()
       loader.loadAsync('./assets/geometries/asteroid.obj').then((mesh: { children: any[] }) => {
         this.gpuSimulation = new GPUSimulation(8192, this.renderer, this.clock)
         this.gpuRendering = new GPURendering(this.gpuSimulation, (mesh.children[0] as Mesh).geometry)
-        this.scene.add(this.gpuSimulation)
-        this.scene.add(this.gpuRendering)
+        // this.scene.add(this.gpuSimulation)
+        // this.scene.add(this.gpuRendering)
+
+        const light: DirectionalLight = new DirectionalLight()
+        light.position.set(10, 50, 50)
+        this.scene.add(light)
+        const ambient: AmbientLight = new AmbientLight(new Color(0xFFFFFF))
+        this.scene.add(ambient)
+        const stones: StonesObject = new StonesObject()
+        this.scene.add(stones)
+        
         resolve()
       })
     })
@@ -94,11 +109,13 @@ class MainScene extends ThreeBase {
     this.controls.dampingFactor = 0.09
     this.controls.enableDamping = true
     this.controls.screenSpacePanning = false
-    this.controls.minDistance = 100
-    this.controls.maxDistance = 1400
+    this.controls.minDistance = 5
+    this.controls.maxDistance = 150
     this.controls.maxPolarAngle = Math.PI / 2
     this.controls.rotateSpeed = 0.5
-    this.controls.target.y = 0
+    this.controls.target.y = 2
+    this.controls.target.x = -5
+    this.camera.position.setFromSphericalCoords(9, -Math.PI*0.8, -Math.PI * 1.2)
   }
 
   private setupPostprocessing() {
@@ -113,7 +130,11 @@ class MainScene extends ThreeBase {
       0.59,
       0.438
     )
-    this.composer.addPass(this.bloomPass)
+    // this.composer.addPass(this.bloomPass)
+
+    // this.ao = new SAOPass(this.scene, this.camera)
+    // this.ao.output = SAOPass.OUTPUT.SAO
+    // this.composer.addPass(this.ao)
   }
 
   private setupGui() {

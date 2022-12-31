@@ -35,5 +35,8 @@
 		"vite": "^4.0.0",
 		"vite-plugin-glsl": "^1.0.1"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"fractal-noise": "^2.1.0-pre1"
+	}
 }
